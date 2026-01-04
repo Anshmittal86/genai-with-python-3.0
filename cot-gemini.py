@@ -5,7 +5,10 @@ import json
 
 load_dotenv()
 
-client = OpenAI()
+client = OpenAI(
+    api_key= "AIzaSyC9-KUKavj-hKS4xTsvmkINcu7IDf5dHEA",
+    base_url="https://generativelanguage.googleapis.com/v1beta/openai/"
+)
 
 SYSTEM_PROMPT="""
 You're an expert AI Assistant in resolving user query using chain of thoughts.
@@ -15,7 +18,8 @@ Once you think enough PLAN has been done, finally you can give an OUTPUT
 
 Rules:- 
     - Strictly Follow the given JSON format
-    - Only run one step at a time
+    - Very Very Strictly give me one step at a time and wait for the next step
+    -  
     - The sequence of steps is START (Where user gives an input), PLAN (That can be multiple time) and finally OUTPUT (which is going to the displayed to the user.) 
 
 Output JSON Format:
@@ -38,22 +42,11 @@ OUTPUT: { "step": "OUTPUT", "content": "3.5" }
 """
 
 response = client.chat.completions.create(
-    model="gpt-4o-mini",
+    model="gemini-2.5-flash",
+    response_format={"type": "json_object"},
     messages=[
         { "role": "system", "content": SYSTEM_PROMPT },
-        { "role": "user", "content": "Hey, Can you solve 2 + 3 * 5 / 10?" },
-        { "role": "assistant", "content": json.dumps({ "step": "START", "content": "Hey, Can you solve 2 + 3 * 5 / 10?" }) },
-        { "role": "assistant", "content": json.dumps({"step": "PLAN", "content": "Seems, like user is interested in math problem."}) },
-        { "role": "assistant", "content": json.dumps({ "step": "PLAN", "content": "Hey, Can you solve 2 + 3 * 5 / 10?" }) },
-        { "role": "assistant", "content": json.dumps({"step": "PLAN", "content": "Looking at the problem, we should solve this using BODMAS method."}) },
-        { "role": "assistant", "content": json.dumps({"step": "PLAN", "content": "Yes, the BODMAS is correct method to follow here."}) },
-        { "role": "assistant", "content": json.dumps({"step": "PLAN", "content": "First, we must perform the multiplication: 3 * 5 which is 15."}) },
-        { "role": "assistant", "content": json.dumps({"step": "PLAN", "content": "Now, the new equation is 2 + 15 / 10."}) },
-        { "role": "assistant", "content": json.dumps({"step": "PLAN", "content": "Next, we must perform the division: 15 / 10 which equals 1.5."}) },
-        { "role": "assistant", "content": json.dumps({"step": "PLAN", "content": "Now, the equation is 2 + 1.5."}) },
-        { "role": "assistant", "content": json.dumps({"step": "PLAN", "content": "Finally, let's perform the addition: 2 + 1.5 which equals 3.5."}) },
-        { "role": "assistant", "content": json.dumps({"step": "PLAN", "content": "Great, we have solved the problem and the answer is 3.5."}) },
-        { "role": "assistant", "content": json.dumps({"step": "OUTPUT", "content": "3.5"}) }
+        { "role": "user", "content": "Hey, what is square root of 35" }
     ]
 )
 
