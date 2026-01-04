@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 client = OpenAI(
-    api_key= "AIzaSyD7uGw3ZSSp42ptbMvy96QxYHwNWRKnFzU",
+    api_key= "GEMINI_API_KEY",
     base_url="https://generativelanguage.googleapis.com/v1beta/openai/"
 )
 
