@@ -9,6 +9,35 @@ load_dotenv()
 
 client = OpenAI()
 
+class PermissionChecker:
+    """Prompts for user confirmation before dangerous operations."""
+    
+    DANGEROUS_TOOLS = {
+        'write_file': lambda input_json: f"Writing/Overwriting file: {json.loads(input_json).get('file_path', 'unknown')}",
+        'run_shell': lambda cmd: f"Running shell command: {cmd[:100]}..."  # Truncate for display
+    }
+    
+    @staticmethod
+    def needs_permission(tool_name: str, tool_input: str) -> bool:
+        return tool_name in PermissionChecker.DANGEROUS_TOOLS
+    
+    @staticmethod
+    def get_description(tool_name: str, tool_input: str) -> str:
+        if tool_name in PermissionChecker.DANGEROUS_TOOLS:
+            return PermissionChecker.DANGEROUS_TOOLS[tool_name](tool_input)
+        return ""
+    
+    @staticmethod
+    def request_permission(tool_name: str, tool_input: str) -> bool:
+        description = PermissionChecker.get_description(tool_name, tool_input)
+        print(f"\n⚠️  PERMISSION REQUEST")
+        print(f"Operation: {tool_name.upper()}")
+        print(f"Details: {description}")
+        print("-" * 50)
+        response = input("Allow this operation? (y/n): ").strip().lower()
+        print("-" * 50 + "\n")
+        return response in ['y', 'yes']
+
 def get_weather(city: str) -> str:
     print("🔨 Tool Called: get_weather, City: ", city)
     
@@ -29,22 +58,27 @@ def read_file(file_path: str)-> str:
             return file.read()
     except Exception as e:
         return f"Error reading file: {str(e)}"
-    
+
 def write_file(input_json: str) -> str:
     print("🔨 Tool Called: write_file", input_json)
-    
+   
     file_params = json.loads(input_json)
-    
+   
     file_path = file_params.get("file_path")
     file_content = file_params.get("content")
-    
+   
     try:
         with open(file_path, 'w') as file:
             file.write(file_content)
         return f"✅ File written: {file_path}"
-    
+   
     except Exception as e:
         return f"Error Writing file: {str(e)}"
+    
+def safe_write_file(input_json: str) -> str:
+    if PermissionChecker.request_permission('write_file', input_json):
+        return write_file(input_json)  # Original function
+    return "❌ Blocked by user: Write operation denied."
 
 
 def list_directory(dir_path: str = ".") -> str:
@@ -58,25 +92,30 @@ def list_directory(dir_path: str = ".") -> str:
 
 def run_shell(cmd: str)-> str:
     print("🔨 Tool Called: run_shell", cmd)
-    
+   
     try:
         result = subprocess.run(cmd,shell=True,capture_output=True,text=True,timeout=30)
-    
+   
         output = result.stdout + result.stderr
         return f"Exit code {result.returncode}\nOutput: {output}"
-    
-    except subprocess.TimeoutExpired: 
+   
+    except subprocess.TimeoutExpired:
         return "Command Timed out"
     except Exception as e:
         return f"Error running command: {str(e)}"
+
+def safe_run_shell(cmd: str) -> str:
+    if PermissionChecker.request_permission('run_shell', cmd):
+        return run_shell(cmd)  # Original function
+    return "❌ Blocked by user: Shell command denied."
     
 
 available_tool = {
     "get_weather": get_weather,
     "read_file": read_file,
-    "write_file": write_file,
+    "write_file": safe_write_file,
     "list_directory": list_directory,
-    "run_shell": run_shell
+    "run_shell": safe_run_shell  
 }
 
 SYSTEM_PROMPT="""
@@ -147,7 +186,7 @@ while True:
 
     while True:
         response = client.chat.completions.create(
-            model="gpt-4o",
+            model="gpt-4o-mini",
             response_format={"type": "json_object"},
             messages=message_history
         )
@@ -174,6 +213,9 @@ while True:
             print(f"🔨: Tool name: {tool_name}, Input: {tool_input}")
             
             if tool_name in available_tool:
+                if PermissionChecker.needs_permission(tool_name, tool_input):
+                    pass
+                
                 tool_output = available_tool[tool_name](tool_input)
                 print(f"🔨: Tool name: {tool_name}, Output: {tool_output}")
                 
