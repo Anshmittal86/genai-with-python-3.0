@@ -1,6 +1,7 @@
 from openai import OpenAI
 from dotenv import load_dotenv
-
+from pydantic import BaseModel, Field
+from typing import Optional
 import json
 import requests
 
@@ -72,6 +73,13 @@ PLAN: { "step": "PLAN", "content": "ok, the current weather of goa is 25 C" }
 OUTPUT: { "step": "OUTPUT", "content": "The weather of goa is 25 C" }
 """
 
+class WeatherOutputSchema(BaseModel):
+    step: str = Field(..., description="This is ID so that we can see what step ai will perform")
+    content: Optional[str] = Field(None, description="this is output coming from ai")
+    input: Optional[str] = Field(None, description="this is the input of the function coming from ai")
+    output: Optional[str] = Field(None, description="this is the tool output for ai understanding")
+    tool: Optional[str] = Field(None, description="this is the function name")
+
 message_history=[
     { "role": "system", "content": SYSTEM_PROMPT },
 ]
@@ -80,28 +88,28 @@ user_query = input("👨: ")
 message_history.append({ "role": "user", "content": user_query })
 
 while True:
-    response = client.chat.completions.create(
+    response = client.chat.completions.parse(
         model="gpt-4o-mini",
-        response_format={"type": "json_object"},
+        response_format=WeatherOutputSchema,
         messages=message_history
     )
     
     raw_result = response.choices[0].message.content
     message_history.append({"role": "assistant", "content": raw_result })
     
-    parsed_result = json.loads(raw_result)
+    parsed_result = response.choices[0].message.parsed
     
-    if parsed_result.get("step") == "START":
-        print(f"🔥: {parsed_result.get("content")}")
+    if parsed_result.step == "START":
+        print(f"🔥: {parsed_result.content}")
         continue
     
-    if parsed_result.get("step") == "PLAN":
-        print(f"🧠: {parsed_result.get("content")}")
+    if parsed_result.step == "PLAN":
+        print(f"🧠: {parsed_result.content}")
         continue
     
-    if parsed_result.get("step") == "ACTION":
-        tool_name = parsed_result.get("tool")
-        tool_input = parsed_result.get("input")
+    if parsed_result.step == "ACTION":
+        tool_name = parsed_result.tool
+        tool_input = parsed_result.input
         print(f"🔨: Tool name: {tool_name}, Input: {tool_input}")
         
         if tool_name in available_tool:
@@ -111,8 +119,8 @@ while True:
             message_history.append({ "role": "user", "content": json.dumps({ "step": "OBSERVE", "input": tool_input, "output": tool_output }) })
             continue
 
-    if parsed_result.get("step") == "OUTPUT":
-        print(f"🤖: {parsed_result.get("content")}")
+    if parsed_result.step == "OUTPUT":
+        print(f"🤖: {parsed_result.content}")
         break
     
     
