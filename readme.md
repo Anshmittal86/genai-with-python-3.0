@@ -31,3 +31,7 @@ pip freeze > requirements.txt
 # Install packages from requirements.txt
 
 pip install -r requirements.txt
+
+# docker compose
+
+docker compose up -d
