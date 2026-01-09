@@ -23,7 +23,7 @@ relevant_chunks = vector_store.similarity_search(query=user_query)
 
 system_prompt = f"""
 You are a helpful assistant who answer user's query by using the following pieces of context with the page no so that user can refer.
-If you don't know the answer, just say that I don't know, don't try to make up an answer.
+If you don't know the answer, just say that I don't know with the reason why you are not able to give the answer only give the 2 to 3 line max reason instead of just saying I don't know, don't try to make up an answer.
 
 context: {relevant_chunks}
 """
