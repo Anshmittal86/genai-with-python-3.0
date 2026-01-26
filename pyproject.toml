@@ -10,6 +10,7 @@ dependencies = [
     "langchain-openai>=1.1.7",
     "langchain-qdrant>=1.1.0",
     "langchain-text-splitters>=1.1.0",
+    "langgraph>=1.0.5",
     "openai>=2.14.0",
     "playsound==1.2.2",
     "pydantic>=2.12.5",

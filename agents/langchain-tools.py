@@ -4,6 +4,7 @@ from langchain_openai import ChatOpenAI
 import requests
 import os
 from dotenv import load_dotenv
+
 load_dotenv()
 
 # 1. Define your tools
@@ -74,7 +75,7 @@ model = ChatOpenAI(
 # 3. Create the agent
 agent = create_agent(model, tools=tools)
 
-# 4. re
+# 4. invoke the agent
 user_query = input("👨: ")
 result = agent.invoke({
     "messages": [{"role": "user", "content": user_query}]
